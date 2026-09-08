@@ -3,13 +3,18 @@
 
 typedef struct rProceso
 {
-    int id;
-    int tiempo_proceso;
-    bool estado;
+    int pid;             // Process ID
+    int tiempo_servicio; // Tiempo de Servicio o TS (se restará en el proceso)
+    int TS_OG;           // TS original
+    int tiempo_retorno;  // Tiempo reloj que se necesitó para finalizarlo junto con otros procesos
+    int tiempo_espera;   // TR - TS
+    bool estado;         // En proceso: True, Finalizado: False
 } rProceso;
 
 void crearProcesos(rProceso vector[], int cantidad);
 void RoundRobin(int Q, rProceso procesos[], int cantidad);
+void metricasProcesos(rProceso procesos[], int cantidad);
+int scheduler(int proceso_actual, rProceso procesos[], int i);
 
 int main()
 {
@@ -25,7 +30,7 @@ int main()
 
     crearProcesos(procesos, cantidad);
     RoundRobin(Q, procesos, cantidad);
-
+    metricasProcesos(procesos, cantidad);
     return 0;
 }
 
@@ -39,9 +44,10 @@ void crearProcesos(rProceso vector[], int cantidad)
         printf("Ingrese el tiempo de servicio del proceso %i: ", i + 1);
         scanf("%i", &tiempoServicio);
         // Definimos tiempo de servicio de proceso n
-        proceso.tiempo_proceso = tiempoServicio;
+        proceso.tiempo_servicio = tiempoServicio;
+        proceso.TS_OG = tiempoServicio;
         // Definimos id del servicio
-        proceso.id = i + 1;
+        proceso.pid = i + 1;
         // Ponemos estado del proceso (true por default)
         proceso.estado = true;
         // Agregamos al vector que los contiene
@@ -52,10 +58,11 @@ void crearProcesos(rProceso vector[], int cantidad)
 
 void RoundRobin(int Q, rProceso procesos[], int cantidad)
 {
-    // Necesito estas métricas al final del
-    // float TRP, TR, TE, TEP;
     bool hay_mas = true;
     int ronda = 1;
+    int pant = -1;
+    // Tiempo total transcurrido
+    int reloj = 0;
     // Entra en el while para poder crear tantas rondas como sea necesario
     do
     {
@@ -64,28 +71,46 @@ void RoundRobin(int Q, rProceso procesos[], int cantidad)
         int finalizados = 0;
         for (int i = 0; i < cantidad; i++)
         {
+            int proceso_actual = i;
             // Chequeamos que en una ronda anterior ya haya finalizado
-            // (se reinicia con cada ronda para evitar errores)
             if (procesos[i].estado == false)
             {
                 finalizados++;
             }
             // Finalizó en esta ronda
-            else if (Q >= procesos[i].tiempo_proceso && procesos[i].estado == true)
+            else if (Q >= procesos[i].tiempo_servicio && procesos[proceso_actual].estado == true)
             {
-                printf("Proceso %i finalizado!\n", i + 1);
-                procesos[i].tiempo_proceso = 0;
-                procesos[i].estado = false;
+                // Chequeamo si ya habia pasado por este proceso en la ronda anterior
+                pant = scheduler(pant, procesos, proceso_actual);
+                int ts_restante = procesos[proceso_actual].tiempo_servicio;
+                reloj += ts_restante;
+                procesos[proceso_actual].tiempo_retorno = reloj;
+                printf("Proceso %i finalizado en: %i ciclos\n",
+                       procesos[proceso_actual].pid,
+                       procesos[proceso_actual].tiempo_retorno);
+                // Si el TS es menor a Q, entonces se hace TS - TS = 0
+                procesos[proceso_actual].tiempo_servicio -= ts_restante;
+                // Cambiamos el estado del proceso a finalizado
+                procesos[proceso_actual].estado = false;
+                // Se calcula el TE del proceso (TR - TS Original)
+                procesos[proceso_actual].tiempo_espera = procesos[i].tiempo_retorno - procesos[proceso_actual].TS_OG;
+                // Le sumamos al reloj el Q que se utilizó para este proceso
                 finalizados++;
             }
             // Todavia hay espacio para otra ronda para este
             else
             {
-                printf("Proceso %i: %i(-%i)\n", i + 1, procesos[i].tiempo_proceso - Q, Q);
-                procesos[i].tiempo_proceso -= Q;
+                // Chequeamo si ya habia pasado por este proceso en la ronda anterior
+                pant = scheduler(pant, procesos, proceso_actual);
+
+                printf("Proceso %i: %i(-%i)\n", i + 1,
+                       procesos[i].tiempo_servicio - Q, Q);
+                procesos[i].tiempo_servicio -= Q;
+                reloj += Q;
             }
         }
-        sleep(3);
+        // Tiempo de espera de 2 segundos
+        sleep(2);
         // Si finalizados es igual a la cantidad de elementos del vector, no hay mas rondas que hacer
         if (finalizados == cantidad)
         {
@@ -94,6 +119,34 @@ void RoundRobin(int Q, rProceso procesos[], int cantidad)
         // Si sigue se aumenta el numero de la ronda
         ronda++;
     } while (hay_mas);
-    printf("=== PROCESOS FINALIZADOS ===\n");
+    printf("=== PROCESOS FINALIZADOS ===\n\n");
     return;
+}
+
+void metricasProcesos(rProceso procesos[], int cantidad)
+{
+    float TRP = 0, TEP = 0;
+    for (int i = 0; i < cantidad; i++)
+    {
+        TRP += procesos[i].tiempo_retorno;
+        TEP += procesos[i].tiempo_espera;
+    }
+    TRP = TRP / cantidad;
+    TEP = TEP / cantidad;
+    printf("===== TRP =====\n     %.2f    \n", TRP);
+    printf("===============\n\n");
+    printf("===== TEP =====\n     %.2f    \n", TEP);
+    printf("===============\n\n");
+    return;
+}
+
+int scheduler(int pant, rProceso procesos[], int proceso_actual)
+{
+    int nuevo_proceso = pant;
+    if (pant != procesos[proceso_actual].pid)
+    {
+        nuevo_proceso = procesos[proceso_actual].pid;
+        printf("El Scheduler cambia al proceso %i\n", nuevo_proceso);
+    }
+    return nuevo_proceso;
 }

@@ -170,7 +170,7 @@ void logicaMenu(){
             scanf("%i", &Q);
             crearProcesos(procesos, cantidad);
             printf("Procesos creados con exito...\n");
-            printf("%i",opcion);
+            //printf("%i",opcion);
             break;
         case 2:
             if(cantidad < 1){
@@ -181,9 +181,12 @@ void logicaMenu(){
                 metricasProcesos(procesos, cantidad);
             }
             break;
-        default: printf("La opcion no es valida\n");
+        case 0:
+            printf("\nFin del programa...\n");
+            break;
+        default: 
+            printf("La opcion no es valida\n");
             break;
         }
     }
-    printf("\nFin del programa...\n");
 }

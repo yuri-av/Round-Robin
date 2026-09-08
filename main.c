@@ -16,21 +16,11 @@ void RoundRobin(int Q, rProceso procesos[], int cantidad);
 void metricasProcesos(rProceso procesos[], int cantidad);
 int scheduler(int proceso_actual, rProceso procesos[], int i);
 
-int main()
-{
-    int cantidad;
-    int Q;
+void mostrarMenu();
+void logicaMenu();
 
-    printf("Ingrese la cantidad de procesos que se realizaran: ");
-    scanf("%i", &cantidad);
-
-    printf("Ingrese el valor de Q: ");
-    scanf("%i", &Q);
-    rProceso procesos[cantidad];
-
-    crearProcesos(procesos, cantidad);
-    RoundRobin(Q, procesos, cantidad);
-    metricasProcesos(procesos, cantidad);
+int main(){
+    logicaMenu();
     return 0;
 }
 
@@ -149,4 +139,51 @@ int scheduler(int pant, rProceso procesos[], int proceso_actual)
         printf("El Scheduler cambia al proceso %i\n", nuevo_proceso);
     }
     return nuevo_proceso;
+}
+
+// FUNCIONES DE MENU
+
+void mostrarMenu(){
+    printf("\n----------MENU----------\n");
+    printf("Agregar procesos (1)\n");
+    printf("Ejecutar Round Robin (2)\n");
+    printf("Salir (0)\n");
+    printf("------------------------\n");
+}
+
+void logicaMenu(){
+    int opcion=-1;
+    int cantidad=0;
+    int Q;
+    rProceso procesos[100];
+
+    while(opcion != 0){
+        mostrarMenu();
+        printf("Ingresar opcion: ");
+        scanf("%i",&opcion);
+        switch (opcion)
+        {
+        case 1:
+            printf("Ingrese la cantidad de procesos que se realizaran: ");
+            scanf("%i", &cantidad);
+            printf("Ingrese el valor de Q: ");
+            scanf("%i", &Q);
+            crearProcesos(procesos, cantidad);
+            printf("Procesos creados con exito...\n");
+            printf("%i",opcion);
+            break;
+        case 2:
+            if(cantidad < 1){
+                printf("Primero debe agregar procesos para ejecutar el Round Robin\n");
+            }
+            else{
+                RoundRobin(Q, procesos, cantidad);
+                metricasProcesos(procesos, cantidad);
+            }
+            break;
+        default: printf("La opcion no es valida\n");
+            break;
+        }
+    }
+    printf("\nFin del programa...\n");
 }

@@ -19,7 +19,8 @@ int scheduler(int proceso_actual, rProceso procesos[], int i);
 void mostrarMenu();
 void logicaMenu();
 
-int main(){
+int main()
+{
     logicaMenu();
     return 0;
 }
@@ -73,6 +74,7 @@ void RoundRobin(int Q, rProceso procesos[], int cantidad)
                 // Chequeamo si ya habia pasado por este proceso en la ronda anterior
                 pant = scheduler(pant, procesos, proceso_actual);
                 int ts_restante = procesos[proceso_actual].tiempo_servicio;
+                // Le sumamos al reloj el Q que se utilizó para este proceso
                 reloj += ts_restante;
                 procesos[proceso_actual].tiempo_retorno = reloj;
                 printf("Proceso %i finalizado en: %i ciclos\n",
@@ -84,7 +86,6 @@ void RoundRobin(int Q, rProceso procesos[], int cantidad)
                 procesos[proceso_actual].estado = false;
                 // Se calcula el TE del proceso (TR - TS Original)
                 procesos[proceso_actual].tiempo_espera = procesos[i].tiempo_retorno - procesos[proceso_actual].TS_OG;
-                // Le sumamos al reloj el Q que se utilizó para este proceso
                 finalizados++;
             }
             // Todavia hay espacio para otra ronda para este
@@ -143,7 +144,8 @@ int scheduler(int pant, rProceso procesos[], int proceso_actual)
 
 // FUNCIONES DE MENU
 
-void mostrarMenu(){
+void mostrarMenu()
+{
     printf("\n----------MENU----------\n");
     printf("Agregar procesos (1)\n");
     printf("Ejecutar Round Robin (2)\n");
@@ -151,32 +153,47 @@ void mostrarMenu(){
     printf("------------------------\n");
 }
 
-void logicaMenu(){
-    int opcion=-1;
-    int cantidad=0;
+void logicaMenu()
+{
+    int opcion = -1;
+    int cantidad = 0;
     int Q;
     rProceso procesos[100];
 
-    while(opcion != 0){
+    while (opcion != 0)
+    {
         mostrarMenu();
         printf("Ingresar opcion: ");
-        scanf("%i",&opcion);
+        scanf("%i", &opcion);
         switch (opcion)
         {
         case 1:
             printf("Ingrese la cantidad de procesos que se realizaran: ");
             scanf("%i", &cantidad);
+            while (cantidad <= 0 || cantidad > 100)
+            {
+                printf("Valor numerico no valido, ingresar un entero mayor a 0 y menor a 100: ");
+                scanf("%i", &cantidad);
+            }
             printf("Ingrese el valor de Q: ");
             scanf("%i", &Q);
+            while (Q <= 0)
+            {
+                printf("Q debe valer mas que 0, ingrese nuevamente: ");
+                scanf("%i", &Q);
+            }
+
             crearProcesos(procesos, cantidad);
             printf("Procesos creados con exito...\n");
-            //printf("%i",opcion);
+            // printf("%i",opcion);
             break;
         case 2:
-            if(cantidad < 1){
+            if (cantidad < 1)
+            {
                 printf("Primero debe agregar procesos para ejecutar el Round Robin\n");
             }
-            else{
+            else
+            {
                 RoundRobin(Q, procesos, cantidad);
                 metricasProcesos(procesos, cantidad);
             }
@@ -184,7 +201,7 @@ void logicaMenu(){
         case 0:
             printf("\nFin del programa...\n");
             break;
-        default: 
+        default:
             printf("La opcion no es valida\n");
             break;
         }

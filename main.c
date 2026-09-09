@@ -1,20 +1,51 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <unistd.h>
+
+#define SEPARADOR "-----------------------------------"
+
+// Definimos el enum para los estados del proceso
+typedef enum
+{
+    NUEVO,
+    LISTO,
+    CORRIENDO,
+    TERMINADO
+} EstadoProceso;
+
+// Funcion auxiliar para convertir el enum a texto (String)
+const char *obtenerNombreEstado(EstadoProceso estado)
+{
+    switch (estado)
+    {
+    case NUEVO:
+        return "NUEVO";
+    case LISTO:
+        return "LISTO";
+    case CORRIENDO:
+        return "CORRIENDO";
+    case TERMINADO:
+        return "TERMINADO";
+    default:
+        return "DESCONOCIDO";
+    }
+}
 
 typedef struct rProceso
 {
-    int pid;             // Process ID
-    int tiempo_servicio; // Tiempo de Servicio o TS (se restará en el proceso)
-    int TS_OG;           // TS original
-    int tiempo_retorno;  // Tiempo reloj que se necesitó para finalizarlo junto con otros procesos
-    int tiempo_espera;   // TR - TS
-    bool estado;         // En proceso: True, Finalizado: False
+    int pid;              // Process ID
+    int tiempo_servicio;  // Tiempo de Servicio o TS (se restará en el proceso)
+    int TS_OG;            // TS original
+    int tiempo_retorno;   // Tiempo reloj que se necesitó para finalizarlo junto con otros procesos
+    int tiempo_espera;    // TR - TS
+    EstadoProceso estado; // Default: NUEVO
 } rProceso;
 
 void crearProcesos(rProceso vector[], int cantidad);
 void RoundRobin(int Q, rProceso procesos[], int cantidad);
 void metricasProcesos(rProceso procesos[], int cantidad);
 int scheduler(int proceso_actual, rProceso procesos[], int i);
+void cambioEstado(rProceso procesos[], int proceso_actual, int Q);
 
 void mostrarMenu();
 void logicaMenu();
@@ -40,7 +71,7 @@ void crearProcesos(rProceso vector[], int cantidad)
         // Definimos id del servicio
         proceso.pid = i + 1;
         // Ponemos estado del proceso (true por default)
-        proceso.estado = true;
+        proceso.estado = NUEVO;
         // Agregamos al vector que los contiene
         vector[i] = proceso;
     }
@@ -57,50 +88,65 @@ void RoundRobin(int Q, rProceso procesos[], int cantidad)
     // Entra en el while para poder crear tantas rondas como sea necesario
     do
     {
-        printf("=== RONDA %i ===\n", ronda);
+        printf("\n=== RONDA %i ===\n", ronda);
+        printf("%s\n", SEPARADOR);
+
         // Se reinicia con cada ronda para evitar errores
         int finalizados = 0;
         for (int i = 0; i < cantidad; i++)
         {
             int proceso_actual = i;
+            cambioEstado(procesos, proceso_actual, Q);
+
             // Chequeamos que en una ronda anterior ya haya finalizado
-            if (procesos[i].estado == false)
+            if (procesos[i].estado == TERMINADO)
             {
                 finalizados++;
             }
             // Finalizó en esta ronda
-            else if (Q >= procesos[i].tiempo_servicio && procesos[proceso_actual].estado == true)
+            else if (Q >= procesos[i].tiempo_servicio && procesos[proceso_actual].estado != TERMINADO)
             {
-                // Chequeamo si ya habia pasado por este proceso en la ronda anterior
+                // Chequeamos si ya habia pasado por este proceso en la ronda anterior
                 pant = scheduler(pant, procesos, proceso_actual);
                 int ts_restante = procesos[proceso_actual].tiempo_servicio;
+
                 // Le sumamos al reloj el Q que se utilizó para este proceso
                 reloj += ts_restante;
                 procesos[proceso_actual].tiempo_retorno = reloj;
                 printf("Proceso %i finalizado en: %i ciclos\n",
                        procesos[proceso_actual].pid,
                        procesos[proceso_actual].tiempo_retorno);
+
                 // Si el TS es menor a Q, entonces se hace TS - TS = 0
                 procesos[proceso_actual].tiempo_servicio -= ts_restante;
+
                 // Cambiamos el estado del proceso a finalizado
-                procesos[proceso_actual].estado = false;
+                cambioEstado(procesos, proceso_actual, Q);
+
                 // Se calcula el TE del proceso (TR - TS Original)
                 procesos[proceso_actual].tiempo_espera = procesos[i].tiempo_retorno - procesos[proceso_actual].TS_OG;
                 finalizados++;
+
+                // Imprimimos un separador al terminar el turno de este proceso
+                printf("%s\n", SEPARADOR);
             }
             // Todavia hay espacio para otra ronda para este
             else
             {
                 // Chequeamo si ya habia pasado por este proceso en la ronda anterior
                 pant = scheduler(pant, procesos, proceso_actual);
-
-                printf("Proceso %i: %i(-%i)\n", i + 1,
-                       procesos[i].tiempo_servicio - Q, Q);
+                printf("Proceso %i: %i(-%i)\n", i + 1, procesos[i].tiempo_servicio - Q, Q);
+                cambioEstado(procesos, proceso_actual, Q);
                 procesos[i].tiempo_servicio -= Q;
                 reloj += Q;
+
+                // Imprimimos un separador al terminar el turno de este proceso
+                printf("%s\n", SEPARADOR);
             }
+            // Esperamos 1 segundo entre proceso
+            sleep(1);
         }
-        // Tiempo de espera de 2 segundos
+        // Tiempo de espera de 2 segundos entre rondas
         sleep(2);
         // Si finalizados es igual a la cantidad de elementos del vector, no hay mas rondas que hacer
         if (finalizados == cantidad)
@@ -110,7 +156,7 @@ void RoundRobin(int Q, rProceso procesos[], int cantidad)
         // Si sigue se aumenta el numero de la ronda
         ronda++;
     } while (hay_mas);
-    printf("=== PROCESOS FINALIZADOS ===\n\n");
+    printf("\n=== PROCESOS FINALIZADOS ===\n\n");
     return;
 }
 
@@ -124,9 +170,9 @@ void metricasProcesos(rProceso procesos[], int cantidad)
     }
     TRP = TRP / cantidad;
     TEP = TEP / cantidad;
-    printf("===== TRP =====\n     %.2f    \n", TRP);
+    printf("===== TRP =====\n    %.2f    \n", TRP);
     printf("===============\n\n");
-    printf("===== TEP =====\n     %.2f    \n", TEP);
+    printf("===== TEP =====\n    %.2f    \n", TEP);
     printf("===============\n\n");
     return;
 }
@@ -142,8 +188,32 @@ int scheduler(int pant, rProceso procesos[], int proceso_actual)
     return nuevo_proceso;
 }
 
-// FUNCIONES DE MENU
+void cambioEstado(rProceso procesos[], int proceso_actual, int Q)
+{
+    int tiempo_servicio = procesos[proceso_actual].tiempo_servicio;
+    // NUEVO -> LISTO
+    if (procesos[proceso_actual].estado == NUEVO)
+    {
+        procesos[proceso_actual].estado = LISTO;
+        printf("Estado proceso %i: %s\n%s\n", proceso_actual + 1, obtenerNombreEstado(procesos[proceso_actual].estado), SEPARADOR);
+    }
+    // LISTO -> CORRIENDO
+    if (tiempo_servicio > Q && procesos[proceso_actual].estado == LISTO)
+    {
+        procesos[proceso_actual].estado = CORRIENDO;
+        printf("Estado proceso %i: %s\n%s\n", proceso_actual + 1, obtenerNombreEstado(procesos[proceso_actual].estado), SEPARADOR);
+    }
+    // CORRIENDO -> TERMINADO
+    else if (tiempo_servicio <= Q && procesos[proceso_actual].estado != TERMINADO)
+    {
+        procesos[proceso_actual].estado = TERMINADO;
+        printf("Estado proceso %i: %s\n", proceso_actual + 1, obtenerNombreEstado(procesos[proceso_actual].estado));
+        // NOTA: No agrego el separador acá porque en RoundRobin ya se imprime uno justo después de llamar a esta función cuando finaliza.
+    }
+    return;
+}
 
+// FUNCIONES DE MENU
 void mostrarMenu()
 {
     printf("\n----------MENU----------\n");
@@ -185,7 +255,6 @@ void logicaMenu()
 
             crearProcesos(procesos, cantidad);
             printf("Procesos creados con exito...\n");
-            // printf("%i",opcion);
             break;
         case 2:
             if (cantidad < 1)

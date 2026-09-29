@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <conio.h> // Funciones nativas de consola en Windows
-#include "interfaz.h"
-#include "proceso.h"
+#include "../include/interfaz.h"
+#include "../include/proceso.h"
 
 rProceso *pedirDatosProceso(int pidActual, int relojGlobal)
 {

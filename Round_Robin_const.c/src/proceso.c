@@ -1,8 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include "proceso.h"
-
+#include "../include/proceso.h"
 #define SEPARADOR "-----------------------------------"
 
 typedef enum

@@ -58,10 +58,10 @@ void imprimirTablaMetricas(Cola terminados)
         TR += proceso->tiempo_retorno;
         TE += proceso->tiempo_espera;
         // Liberamos memoria
-        destruir_proceso(proceso);
+        destruirProceso(proceso);
     }
     printf("-----------------------------------------------------------------------\n");
-    printf("Tiempo Promedio de Espera:  %.2f ms\n", (float)TR / p_terminados);
+    printf("Tiempo Promedio de Espera:  %.2f ms\n", (float)TE / p_terminados);
     printf("Tiempo Promedio de Retorno: %.2f ms\n", (float)TR / p_terminados);
     printf("=======================================================================\n");
 }
